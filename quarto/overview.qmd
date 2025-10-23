@@ -1,0 +1,227 @@
+---
+format: html
+---
+
+## Pipeline Overview
+
+This Quarto documentation describes the analytical workflow used to generate results for:
+
+> **Astle, W., & Haus, S. (2025).**, *Driving with Influence: Exploring Crash Factors of Automated Systems In Different Roadway Contexts* 
+
+The analysis is managed using the `targets`package, which handles dependency tracking and reproducible builds.
+
+### Visualizing the Workflow
+
+Diagrammatically, the workflow can be visualized as follows:
+
+```{mermaid}
+flowchart TD
+
+    %% Define the look for subgraphs
+    classDef blackText fill:none,color:black,font-weight:bold;
+
+    %% Initial load (Blue)
+    subgraph Initial_Datasets["Initial Datasets"]
+        A[ADAS load]
+        B[ADS load]
+    end
+    class Initial_Datasets blackText
+    style A fill:#1f77b4,stroke:#000,stroke-width:2px,color:#fff
+    style B fill:#1f77b4,stroke:#000,stroke-width:2px,color:#fff
+
+    A --> C[Clean]
+    B --> C
+    style C fill:#2ca02c,stroke:#000,stroke-width:2px,color:#fff
+
+    %% Make rules nodes (Bright Gold)
+    C --> D[Make rules]
+    style D fill:#ffcc00,stroke:#000,stroke-width:2px,color:#000
+
+    %% Global Rules (Orange)
+    subgraph Global_Rules["Global Rules"]
+        E[ADAS rules]
+        F[ADS rules]
+    end
+    class Global_Rules blackText
+    style E fill:#ff7f0e,stroke:#000,stroke-width:2px,color:#000
+    style F fill:#ff7f0e,stroke:#000,stroke-width:2px,color:#000
+
+    G[Calculate influence]
+    style G fill:#9467bd,stroke:#000,stroke-width:2px,color:#fff
+
+    D --> E --> G
+    D --> F --> G
+
+    G --> H[ADAS Global scores]
+    G --> I[ADS Global scores]
+    style H fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
+    style I fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
+
+    %% Initial Influence Scores
+    subgraph Global_Influence_Scores["Global Influence Scores"]
+        H
+        I
+    end
+    class Global_Influence_Scores blackText
+
+    %% Join / Plot nodes (Cyan / Gray)
+    H --> J[Join Global scores]
+    I --> J
+    style J fill:#17becf,stroke:#000,stroke-width:2px,color:#000
+
+    J --> K[Plot Global scores]
+
+    style K fill:#00bfae,stroke:#000,stroke-width:2px,color:#000
+
+    %% Split step (Green)
+    C --> N[Split]
+    style N fill:#2ca02c,stroke:#000,stroke-width:2px,color:#fff
+
+    subgraph Roadway_Datasets["Roadway Datasets"]
+        O[ADAS Highway]
+        P[ADAS Intersection]
+        Q[ADS Highway]
+        R[ADS Intersection]
+    end
+    class Roadway_Datasets blackText
+    style O fill:#1f77b4,stroke:#000,stroke-width:2px,color:#fff
+    style P fill:#1f77b4,stroke:#000,stroke-width:2px,color:#fff
+    style Q fill:#1f77b4,stroke:#000,stroke-width:2px,color:#fff
+    style R fill:#1f77b4,stroke:#000,stroke-width:2px,color:#fff
+
+    %% Make rules nodes (Bright Gold)
+    N --> O --> S[Make rules]
+    N --> P --> S
+    N --> Q --> S
+    N --> R --> S
+    style S fill:#ffcc00,stroke:#000,stroke-width:2px,color:#000
+
+    %% Roadway Rules (Orange)
+    S --> T[ADAS Highway Rules]
+    S --> U[ADAS Intersection Rules]
+    S --> V[ADS Highway Rules]
+    S --> W[ADS Intersection Rules]
+    style T fill:#ff7f0e,stroke:#000,stroke-width:2px,color:#000
+    style U fill:#ff7f0e,stroke:#000,stroke-width:2px,color:#000
+    style V fill:#ff7f0e,stroke:#000,stroke-width:2px,color:#000
+    style W fill:#ff7f0e,stroke:#000,stroke-width:2px,color:#000
+
+    subgraph Roadway_Rules["Roadway Rules"]
+    T
+    U
+    V
+    W
+    end
+    class Roadway_Rules blackText
+
+    %% Roadway Rules Influence (Purple)
+    T --> X[Calculate influence]
+    U --> X
+    V --> X
+    W --> X
+    style X fill:#9467bd,stroke:#000,stroke-width:2px,color:#fff
+
+    %% Scores (Red)
+    X --> Y[ADAS Highway scores]
+    X --> Z[ADAS Intersection scores]
+    X --> AA[ADS Highway scores]
+    X --> AB[ADS Intersection scores]
+    style Y fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
+    style Z fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
+    style AA fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
+    style AB fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
+
+    subgraph Roadway_Influence_Scores["Roadway Influence Scores"]
+    Y
+    Z
+    AA
+    AB
+    end
+    class Roadway_Influence_Scores blackText
+    
+    %% Join / Plot nodes (Cyan / Gray)
+Z --> AC[Join Intersection scores] --> AD[Plot Int scores]
+style AC fill:#17becf,stroke:#000,stroke-width:2px,color:#000
+style AD fill:#00bfae,stroke:#000,stroke-width:2px,color:#000
+
+Y --> AE[Join Highway scores] --> AF[Plot Hwy scores]
+style AE fill:#17becf,stroke:#000,stroke-width:2px,color:#000
+style AF fill:#00bfae,stroke:#000,stroke-width:2px,color:#000
+
+AA --> AE
+AB -->AC
+
+```
+
+
+
+### How the Workflow Runs
+
+The analysis is managed by the {targets} pipeline defined in `_targets.R`. This file outlines each step—data import, cleaning, analysis, and visualization—and their dependencies.
+
+Custom functions live in the `R/` folder and are automatically sourced by `{targets}`. Input data (public or simulated) are stored in `data/`, while processed outputs are created during the pipeline run.
+
+**Run the entire workflow with:**
+
+```{r eval=FALSE}
+
+targets::tar_make()
+
+```
+
+**You can then load the various outputs from the pipeline using:**
+
+```{r eval=FALSE}
+
+targets::tar_load(target_name)
+
+```
+
+### An Example
+
+As an example, to view the cleaned data generated by the `{targets}` pipeline, I can:
+
+**1 - View the relevant part of the `_targets.R` file for reference.**
+
+In this instance, it would look like:
+
+```{r eval=FALSE}
+tar_target(
+    cleaned_data, # this is the label of the target we would like to access
+    clean_data(data),
+    pattern = map(data),
+    iteration = "list" # to access the two individual datasets, we have the output as a list
+  )
+```
+
+**2 - We run `tar_make()` to run the pipeline**
+
+```{r eval=FALSE}
+
+targets::tar_make()
+
+```
+
+**3 - Run load the cleaned datasets using `tar_load()`**
+
+Notice that the same name from the tar_target portion of the code is used with `tar_load`.
+
+```{r eval=FALSE}
+
+targets::tar_load(cleaned_data)
+
+```
+
+**4 - Access the dataset from the `cleaned_data` list**
+
+Since we had `iteration = "list"` in the `_targets.R` code, we can access each dataset separately from a list.
+
+```{r eval=FALSE}
+
+dataset_1 <- cleaned_data[[1]]
+dataset_2 <- cleaned_data[[2]]
+```
+
+### Further Reading
+
+For further reference in regards to targets, please see the following documentation: [The {targets} R package user manual](https://books.ropensci.org/targets/)
