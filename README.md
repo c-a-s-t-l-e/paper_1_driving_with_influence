@@ -8,8 +8,6 @@ This repo documentation contains and describes the analytical workflow used to g
 
 The code used when this paper was published can be found here: https://doi.org/10.5281/zenodo.17427823
 
----
-
 With that said, the most relevant pieces are organized accordingly:
 
 ```
