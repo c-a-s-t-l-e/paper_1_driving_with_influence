@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17427823.svg)](https://doi.org/10.5281/zenodo.17427823)
+
 # About This Repo
 
 This repo documentation contains and describes the analytical workflow used to generate results for:
