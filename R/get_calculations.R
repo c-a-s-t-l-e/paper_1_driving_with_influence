@@ -1,71 +1,44 @@
-# Calculation functions
+# ---------------------------------------------------------------------
+# Calculation functions for single item influence.
+# These functions compute how strongly items in the LHS of rules
+# contribute globally or locally to association rule groups.
+# ---------------------------------------------------------------------
 
+# Compute global influence of LHS items across all rules
 get_global_influence <- function(df, rule = "rule") {
-  total_rules <- nrow(df)
-
-  df <- split_rules(df, rule)
-
+  total_rules <- nrow(df)  # total number of rules for normalization
+  
+  df <- split_rules(df, rule)  # split rules into LHS and RHS columns
+  
   influence_df <- df %>%
     # explode LHS into individual items
     mutate(LHS = strsplit(LHS, "\\s*,\\s*")) %>%
     unnest(LHS) %>%
-    mutate(LHS = trimws(LHS)) %>%
-    distinct(row_number(), LHS) %>% # ensure each item counts only once per rule
-    count(LHS, name = "count") %>%
-    mutate(influence = count / total_rules) %>%
-    arrange(desc(influence))
-
+    mutate(LHS = trimws(LHS)) %>%  # remove extra whitespace
+    distinct(row_number(), LHS) %>% # ensure each LHS item counts only once per rule
+    count(LHS, name = "count") %>%  # count occurrences of each item
+    mutate(influence = count / total_rules) %>%  # normalize by total rules
+    arrange(desc(influence))  # sort descending by influence
+  
   influence_df
 }
 
+# Compute local influence of LHS items relative to each RHS
 get_local_influence <- function(df, rule = "rule") {
-  # total rules per RHS
-  df <- split_rules(df, rule)
-
+  df <- split_rules(df, rule)  # split rules into LHS and RHS
+  
   df %>%
-    # explode LHS into individual items
     mutate(LHS = strsplit(LHS, "\\s*,\\s*")) %>%
     unnest(LHS) %>%
-    mutate(LHS = trimws(LHS)) %>%
-    # count each LHS item only once per rule
-    distinct(RHS, row_number(), LHS) %>%
+    mutate(LHS = trimws(LHS)) %>%  # clean whitespace
+    distinct(RHS, row_number(), LHS) %>%  # count each LHS once per RHS
     group_by(RHS, LHS) %>%
-    count(name = "count") %>%
-    # calculate influence relative to total rules with that RHS
+    count(name = "count") %>%  # count occurrences per RHS
     group_by(RHS) %>%
-    mutate(total_rules = sum(count), influence = count / total_rules) %>%
-    ungroup() %>%
-    arrange(RHS, desc(influence))
-}
-
-get_global_weighted_influence <- function(df, rule = "rule", weight_cols = c("confidence", "lift")) {
-  total_rules <- nrow(df)
-  
-  df <- split_rules(df, rule)  # assuming this splits into columns LHS, RHS, confidence, lift, etc.
-  
-  influence_df <- df %>%
-    # explode LHS into individual items
-    mutate(LHS = strsplit(LHS, "\\s*,\\s*")) %>%
-    unnest(LHS) %>%
-    mutate(LHS = trimws(LHS)) %>%
-    distinct(row_number(), LHS, .keep_all = TRUE) %>%
-    
-    # compute both types of weighted influence
-    rowwise() %>%
     mutate(
-      weight_multiply = prod(across(all_of(weight_cols))),
-      weight_sum = sum(across(all_of(weight_cols)))
+      total_rules = sum(count),          # total rules for this RHS
+      influence = count / total_rules     # calculate local influence
     ) %>%
     ungroup() %>%
-    
-    # aggregate by LHS item
-    group_by(LHS) %>%
-    summarise(
-      influence_multiply = sum(weight_multiply) / total_rules,
-      influence_sum = sum(weight_sum) / total_rules,
-      .groups = "drop"
-    ) %>%
-    arrange(desc(influence_multiply))
-  
-  return(influence_df)
+    arrange(RHS, desc(influence))  # sort by RHS and influence descending
 }

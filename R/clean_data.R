@@ -1,22 +1,33 @@
-# ---------- Clean ADAS Dataset ----------
+# ---------------------------------------------------------------------
+# clean_data: Preprocesses raw crash datasets for analysis
+# Steps include:
+#   - Standardizing column names
+#   - Creating derived columns (collision type, weather, mileage, time info)
+#   - Calculating vehicle age
+#   - Removing unknown or missing pre-crash movement data
+#   - Cleaning and standardizing categorical variables
+#   - Selecting and preparing analysis-specific columns
+# ---------------------------------------------------------------------
 clean_data <- function(df) {
   df %>%
-    #mutate(dataset_type = dataset_name) |>
-
+    
+    # Standardize column names to snake_case
     janitor::clean_names() %>%
-
-    # Derived columns
+    
+    # Create derived columns for analysis
     add_collision_type() %>%
     add_weather() %>%
     add_mileage_category() %>%
     add_time_columns() %>%
     add_time_of_day() %>%
+    
+    # Calculate vehicle age
     mutate(vehicle_age = year - model_year) %>%
-
-    # Remove unknown / NA pre-crash movement
+    
+    # Remove rows with missing or unknown pre-crash movement
     drop_na(cp_pre_crash_movement) %>%
     filter(cp_pre_crash_movement != "Unknown") %>%
-
+    
     # Clean categorical variables
     replace_with_unknown(c(
       "city",
@@ -28,10 +39,9 @@ clean_data <- function(df) {
     )) %>%
     title_case_columns("collision_type") %>%
     replace_str_in_char_columns("Other, see Narrative", "Other") %>%
-
-    # Get analysis columns
+    
+    # Select and prepare columns for analysis
     get_analysis_columns(c(
-      #"dataset_type",
       "weather",
       "roadway_type",
       "roadway_surface",

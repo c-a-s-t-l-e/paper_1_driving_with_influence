@@ -1,104 +1,74 @@
-# ---------- Helper Functions ----------
+# ---------------------------------------------------------------------
+# Helper Functions
+# These functions are used to preprocess and transform the raw crash dataset
+# before analysis. Each function performs a specific task, such as creating
+# derived columns, cleaning categorical variables, or formatting time data.
+# ---------------------------------------------------------------------
 
-# Check if any columns have "Y"
+# Check if any of the specified columns contain "Y"
 any_y <- function(df, cols) {
+  # Returns TRUE for rows where any of the columns in 'cols' are "Y"
   rowSums(df[cols] == "Y", na.rm = TRUE) > 0
 }
 
-# Collision type
+# Create a collision type column based on contact areas
 add_collision_type <- function(df) {
   df %>%
     mutate(
       collision_type = case_when(
-
+        
         # --- Rear-end collisions ---
-        any_y(
-          df,
-          c("sv_contact_area_rear", "sv_contact_area_rear_left", "sv_contact_area_rear_right")
-        ) &
-          any_y(
-            df,
-            c("cp_contact_area_front", "cp_contact_area_front_left", "cp_contact_area_front_right")
-          ) ~ "SV rear-ended by CP",
-
-        any_y(
-          df,
-          c("cp_contact_area_rear", "cp_contact_area_rear_left", "cp_contact_area_rear_right")
-        ) &
-          any_y(
-            df,
-            c("sv_contact_area_front", "sv_contact_area_front_left", "sv_contact_area_front_right")
-          ) ~ "CP rear-ended by SV",
-
+        any_y(df, c("sv_contact_area_rear", "sv_contact_area_rear_left", "sv_contact_area_rear_right")) &
+          any_y(df, c("cp_contact_area_front", "cp_contact_area_front_left", "cp_contact_area_front_right")) ~ "SV rear-ended by CP",
+        
+        any_y(df, c("cp_contact_area_rear", "cp_contact_area_rear_left", "cp_contact_area_rear_right")) &
+          any_y(df, c("sv_contact_area_front", "sv_contact_area_front_left", "sv_contact_area_front_right")) ~ "CP rear-ended by SV",
+        
         # --- Head-on collisions ---
-        any_y(
-          df,
-          c("sv_contact_area_front", "sv_contact_area_front_left", "sv_contact_area_front_right")
-        ) &
-          any_y(
-            df,
-            c("cp_contact_area_front", "cp_contact_area_front_left", "cp_contact_area_front_right")
-          ) ~ "Head-on collision",
-
+        any_y(df, c("sv_contact_area_front", "sv_contact_area_front_left", "sv_contact_area_front_right")) &
+          any_y(df, c("cp_contact_area_front", "cp_contact_area_front_left", "cp_contact_area_front_right")) ~ "Head-on collision",
+        
         # --- T-bone (side-impact) collisions ---
-        any_y(
-          df,
-          c("sv_contact_area_left", "sv_contact_area_right")
-        ) &
-          any_y(
-            df,
-            c("cp_contact_area_front", "cp_contact_area_rear")
-          ) ~ "T-bone collision (SV side impacted)",
-
-        any_y(
-          df,
-          c("cp_contact_area_left", "cp_contact_area_right")
-        ) &
-          any_y(
-            df,
-            c("sv_contact_area_front", "sv_contact_area_rear")
-          ) ~ "T-bone collision (CP side impacted)",
-
-        # --- Sideswipe collisions (both have side contact) ---
-        any_y(
-          df,
-          c("sv_contact_area_left", "sv_contact_area_right")
-        ) &
-          any_y(
-            df,
-            c("cp_contact_area_left", "cp_contact_area_right")
-          ) ~ "Sideswipe collision",
-
-        # --- Fallback category ---
+        any_y(df, c("sv_contact_area_left", "sv_contact_area_right")) &
+          any_y(df, c("cp_contact_area_front", "cp_contact_area_rear")) ~ "T-bone collision (SV side impacted)",
+        
+        any_y(df, c("cp_contact_area_left", "cp_contact_area_right")) &
+          any_y(df, c("sv_contact_area_front", "sv_contact_area_rear")) ~ "T-bone collision (CP side impacted)",
+        
+        # --- Sideswipe collisions ---
+        any_y(df, c("sv_contact_area_left", "sv_contact_area_right")) &
+          any_y(df, c("cp_contact_area_left", "cp_contact_area_right")) ~ "Sideswipe collision",
+        
+        # --- Default fallback ---
         TRUE ~ "Other / unknown"
       )
     )
 }
 
-# Weather
+# Combine multiple weather flags into a single column per row
 add_weather <- function(df) {
   df %>%
-    mutate(row_id = row_number()) %>%
+    mutate(row_id = row_number()) %>%  # temporary ID for joining later
     pivot_longer(
       cols = starts_with("weather_"),
       names_to = "weather",
       values_to = "occurred"
     ) %>%
-    filter(occurred == "Y") %>%
+    filter(occurred == "Y") %>%  # keep only occurred weather events
     mutate(weather = str_remove(weather, "^weather_")) %>%
     group_by(row_id) %>%
     summarise(
-      weather = str_to_title(paste(weather, collapse = ", ")),
+      weather = str_to_title(paste(weather, collapse = ", ")), # combine multiple weather types
       .groups = "drop"
     ) %>%
     right_join(df %>% mutate(row_id = row_number()), by = "row_id") %>%
-    select(-row_id)
+    select(-row_id)  # remove temporary ID
 }
 
-# Mileage category
+# Categorize vehicle mileage into bins
 add_mileage_category <- function(df) {
   df %>%
-    filter(!is.na(mileage)) %>%
+    filter(!is.na(mileage)) %>%  # skip missing mileage
     mutate(
       mileage_category = cut(
         mileage,
@@ -108,11 +78,11 @@ add_mileage_category <- function(df) {
     )
 }
 
-# Time columns
+# Extract date and time information from raw columns
 add_time_columns <- function(df) {
   df %>%
     mutate(
-      date = lubridate::my(incident_date),
+      date = lubridate::my(incident_date),  # convert month-year string to date
       month = month(date),
       year = year(date),
       hour = hour(round_date(
@@ -120,10 +90,10 @@ add_time_columns <- function(df) {
         unit = "hour"
       ))
     ) %>%
-    select(-c(incident_date, incident_time_24_00, date))
+    select(-c(incident_date, incident_time_24_00, date))  # drop raw columns
 }
 
-# Time of day
+# Categorize hour into time-of-day labels
 add_time_of_day <- function(df) {
   df %>%
     mutate(
@@ -136,7 +106,7 @@ add_time_of_day <- function(df) {
     )
 }
 
-# Replace missing with "Unknown"
+# Replace missing or NA values in specified columns with "Unknown"
 replace_with_unknown <- function(df, columns) {
   existing_cols <- intersect(columns, names(df))
   df %>%
@@ -146,7 +116,7 @@ replace_with_unknown <- function(df, columns) {
     ))
 }
 
-# Title case
+# Convert specified columns to title case, preserving exceptions
 title_case_columns <- function(df, columns, exceptions = c("SV", "CP")) {
   for (col in columns) {
     if (col %in% names(df)) {
@@ -166,13 +136,13 @@ title_case_columns <- function(df, columns, exceptions = c("SV", "CP")) {
   df
 }
 
-# Replace string in all character columns
+# Replace a specific string pattern across all character columns
 replace_str_in_char_columns <- function(df, pattern, replacement) {
   df %>%
     mutate(across(where(is.character), ~ str_replace(.x, pattern, replacement)))
 }
 
-# Filter analysis columns
+# Filter dataset for analysis and select only relevant columns
 get_analysis_columns <- function(df, columns) {
   df %>%
     filter(
