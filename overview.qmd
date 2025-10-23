@@ -194,7 +194,7 @@ tar_target(
   )
 ```
 
-**2 - We run `tar_make()` to run the pipeline**
+**2 - Run `tar_make()` to run the pipeline**
 
 ```{r eval=FALSE}
 
@@ -202,7 +202,7 @@ targets::tar_make()
 
 ```
 
-**3 - Run load the cleaned datasets using `tar_load()`**
+**3 - Load the cleaned datasets using `tar_load()`**
 
 Notice that the same name from the tar_target portion of the code is used with `tar_load`.
 
