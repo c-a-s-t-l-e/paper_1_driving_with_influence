@@ -10,6 +10,14 @@ The most relevant pieces are organized accordingly:
 paper_1_driving_with_influence/
 ├── _targets.R
 ├── R/
+│   │   ├── clean_data.R
+│   │   ├── clean_data_helpers.R
+│   │   ├── get_data.R
+│   │   ├── make_rules.R
+│   │   ├── get_rules_per_threshold.R
+│   │   ├── get_calculations.R
+│   │   ├── get_calculatons_helpers.R
+│   │   └── plot.R
 ├── data/
 │   ├── raw/
 │   │   ├── ADS.csv
