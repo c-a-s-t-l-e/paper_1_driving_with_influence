@@ -13,6 +13,8 @@ With that said, the most relevant pieces are organized accordingly:
 ```
 paper_1_driving_with_influence/
 ├── _targets.R
+├── overview.qmd
+├── overview.html
 ├── R/
 │   │   ├── clean_data.R
 │   │   ├── clean_data_helpers.R
@@ -27,9 +29,6 @@ paper_1_driving_with_influence/
 │   │   ├── ADS.csv
 │   │   └── ADAS.csv
 │   └── processed/
-├── quarto/
-│   ├── overview.html
-│   └── overview.qmd
 └── renv.lock
 ```
 
@@ -39,6 +38,6 @@ paper_1_driving_with_influence/
 
 `\data` stores the raw data for processing.
 
-`quarto` holds documentation on how to assess the various parts of the `{targets}` pipeline
+`overview.qmd` and `overview.html` document how to assess the various parts of the `{targets}` pipeline
 
 `renv.lock` serves as the snapshot of the R environment to be able to reproduce the environment exactly
