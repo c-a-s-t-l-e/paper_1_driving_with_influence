@@ -6,3 +6,4 @@
 arm_presentation.html
 arm_presentation.qmd
 *.Rproj
+/.quarto/
